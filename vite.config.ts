@@ -69,10 +69,10 @@ if(isDEV) {
 
 const handlebarsPlugin = handlebars({
   context: {
-    title: 'Telegram Web',
-    description: 'Telegram is a cloud-based mobile and desktop messaging app with a focus on security and speed.',
-    url: 'https://web.telegram.org/k/',
-    origin: 'https://web.telegram.org/'
+    title: 'Bullgram WebK',
+    description: 'Bullgram WebK — веб-клиент Bullgram, layer 229.',
+    url: 'https://webk.duckdns.org/',
+    origin: 'https://webk.duckdns.org/'
   }
 });
 

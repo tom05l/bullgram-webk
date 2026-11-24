@@ -149,7 +149,7 @@ export function createProfileGiftsStore(props: {
         hidden: store.hidden,
         withCollections: store.collections === undefined,
         collectionId,
-        limit: 99 // divisible by 3 to avoid grid jumping
+        limit: 24 // Keep the first render small; divisible by three for stable grid rows.
       }),
       fetchedCanManageGifts ? Promise.resolve(store.canManageGifts) : fetchCanManageGifts()
     ]).catch((err) => {

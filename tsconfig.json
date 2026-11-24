@@ -104,6 +104,9 @@
     "excludeDirectories": ["**/node_modules", "**/.claude", "dist", "public", "coverage", "tmp"]
   },
   "exclude": [
+    "release",
+    "reports",
+    "deployment",
     "node_modules",
     ".claude",
     "public",

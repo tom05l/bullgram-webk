@@ -11,11 +11,7 @@ type WebManifest = {
   }>
 };
 
-const EXPECTED_SCOPE_EXTENSIONS = [
-  {type: 'origin', origin: 'https://t.me'},
-  {type: 'origin', origin: 'https://telegram.me'}
-];
-const EXPECTED_MANIFEST_ID = 'https://web.telegram.org/k/';
+const EXPECTED_MANIFEST_ID = 'https://webk.duckdns.org/';
 
 const manifests = [
   'site.webmanifest',
@@ -26,12 +22,12 @@ const manifests = [
 }));
 
 describe('PWA web manifests', () => {
-  test.each(manifests)('$fileName has a stable identity and Telegram link scopes', ({manifest}) => {
-    expect(manifest.id).toBe('/k/');
-    expect(new URL(manifest.id, 'https://web.telegram.org/').href).toBe(EXPECTED_MANIFEST_ID);
+  test.each(manifests)('$fileName has a stable identity and Bullgram origin', ({manifest}) => {
+    expect(manifest.id).toBe('/');
+    expect(new URL(manifest.id, 'https://webk.duckdns.org/').href).toBe(EXPECTED_MANIFEST_ID);
     expect(manifest.start_url).toBe('./');
     expect(manifest.scope).toBe('./');
-    expect(manifest.scope_extensions).toEqual(EXPECTED_SCOPE_EXTENSIONS);
+    expect(manifest.scope_extensions).toBeUndefined();
   });
 
   test('desktop variants keep the same scope extensions', () => {

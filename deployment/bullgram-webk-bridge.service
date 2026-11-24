@@ -1,0 +1,22 @@
+[Unit]
+Description=Bullgram WebK fixed MTProto WebSocket bridge
+After=network.target opensource.service
+
+[Service]
+Type=simple
+User=opensource
+Group=opensource
+ExecStart=/opt/bullgram-webk/venv/bin/python /opt/bullgram-webk/ws_bridge.py
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+MemoryMax=256M
+TasksMax=128
+LimitNOFILE=4096
+
+[Install]
+WantedBy=multi-user.target

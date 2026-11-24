@@ -24,11 +24,38 @@ class AbridgedPacketCodec implements Codec {
     if(length >= 127) { // 0x7f
       length = data[1] | (data[2] << 8) | (data[3] << 16);
 
-      return data.slice(4, length << 2 + 1); // need +1
+      return data.slice(4, 4 + (length << 2)); // need +1
     }
 
-    return data.slice(1, length << 2 + 1); // need +1
+    return data.slice(1, 1 + (length << 2)); // need +1
   }
 }
 
 export default new AbridgedPacketCodec();
+
+// WebSocket messages from a TCP bridge may split or combine transport packets.
+export class AbridgedPacketStream {
+  private buffer = new Uint8Array(0);
+
+  public push(chunk: Uint8Array): Uint8Array[] {
+    const joined = new Uint8Array(this.buffer.length + chunk.length);
+    joined.set(this.buffer);
+    joined.set(chunk, this.buffer.length);
+    const packets: Uint8Array[] = [];
+    let offset = 0;
+    while(offset < joined.length) {
+      const tag = joined[offset];
+      if(tag > 127 || tag === 0) throw new Error('Invalid abridged packet header');
+      const header = tag === 127 ? 4 : 1;
+      if(joined.length - offset < header) break;
+      const words = header === 1 ? tag : joined[offset + 1] | (joined[offset + 2] << 8) | (joined[offset + 3] << 16);
+      const length = words * 4;
+      if(!length || length > 16 * 1024 * 1024) throw new Error('Invalid abridged packet length');
+      if(joined.length - offset < header + length) break;
+      packets.push(joined.slice(offset + header, offset + header + length));
+      offset += header + length;
+    }
+    this.buffer = joined.slice(offset);
+    return packets;
+  }
+}

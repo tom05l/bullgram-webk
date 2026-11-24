@@ -1,0 +1,25 @@
+webk.duckdns.org {
+    encode zstd gzip
+    header {
+        -Server
+        X-Content-Type-Options nosniff
+        Referrer-Policy no-referrer
+        Strict-Transport-Security "max-age=15552000"
+        Cross-Origin-Opener-Policy same-origin
+    }
+    handle /apiws {
+        reverse_proxy 127.0.0.1:9081
+    }
+    handle {
+        @uncached path / /index.html /sw.js /version /version.json /manifest.webmanifest
+        header @uncached Cache-Control "no-store"
+        route {
+            root * /opt/bullgram-webk/current
+            file_server {
+                pass_thru
+            }
+            root * /opt/bullgram-webk/runtime-assets
+            file_server
+        }
+    }
+}

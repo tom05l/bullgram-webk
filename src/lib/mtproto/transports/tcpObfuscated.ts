@@ -4,7 +4,7 @@ import MTPNetworker from '@lib/mtproto/networker';
 import Obfuscation from '@lib/mtproto/transports/obfuscation';
 import MTTransport, {MTConnection, MTConnectionConstructable} from '@lib/mtproto/transports/transport';
 // import intermediatePacketCodec from '@lib/mtproto/transports/intermediate';
-import abridgedPacketCodec from '@lib/mtproto/transports/abridged';
+import abridgedPacketCodec, {AbridgedPacketStream} from '@lib/mtproto/transports/abridged';
 // import paddedIntermediatePacketCodec from '@lib/mtproto/transports/padded';
 import {ConnectionStatus} from '@lib/mtproto/connectionStatus';
 import transportController from '@lib/mtproto/transports/controller';
@@ -15,6 +15,9 @@ import ctx from '@environment/ctx';
 export default class TcpObfuscated implements MTTransport {
   private codec = abridgedPacketCodec;
   private obfuscation = new Obfuscation();
+  private receiveStream = new AbridgedPacketStream();
+  private receiveQueue = Promise.resolve();
+  private receiveGeneration = 0;
   public networker: MTPNetworker;
 
   private pending: Array<Partial<{
@@ -75,30 +78,24 @@ export default class TcpObfuscated implements MTTransport {
     }, 0);
   };
 
-  private onMessage = async(buffer: ArrayBuffer) => {
-    // networkStats.addReceived(this.dcId, buffer.byteLength);
-
+  private onMessage = (buffer: ArrayBuffer) => {
+    const generation = this.receiveGeneration;
     const time = Date.now();
-    let data = await this.obfuscation.decode(new Uint8Array(buffer));
-    data = this.codec.readPacket(data);
-
-    if(this.networker) { // authenticated!
-      // this.pending = this.pending.filter((p) => p.body); // clear pending
-
-      this.networker.onTransportData(data, time);
-
-      // this.dd();
-      return;
-    }
-
-    // console.log('got hex:', data.hex);
-    const pending = this.pending.shift();
-    if(!pending) {
-      this.debug && this.log.debug('no pending for res:', bytesToHex(data));
-      return;
-    }
-
-    pending.resolve(data);
+    this.receiveQueue = this.receiveQueue.then(async() => {
+      if(generation !== this.receiveGeneration) return;
+      const decoded = await this.obfuscation.decode(new Uint8Array(buffer));
+      if(generation !== this.receiveGeneration) return;
+      for(const data of this.receiveStream.push(decoded)) {
+        if(this.networker) {
+          await this.networker.onTransportData(data, time);
+        } else {
+          this.pending.shift()?.resolve(data);
+        }
+      }
+    }).catch((error) => {
+      this.log.error('Transport receive failed', error);
+      if(generation === this.receiveGeneration) this.connection?.close();
+    });
   };
 
   private onClose = () => {
@@ -126,6 +123,8 @@ export default class TcpObfuscated implements MTTransport {
   };
 
   public clear() {
+    ++this.receiveGeneration;
+    this.receiveStream = new AbridgedPacketStream();
     if(import.meta.env.VITE_MTPROTO_AUTO && Modes.multipleTransports) {
       if(this.connected) {
         transportController.setTransportClosed('websocket');

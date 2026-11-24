@@ -408,14 +408,20 @@ export class AppEmojiManager extends AppManager {
       do {
         const ids = allIds.splice(0, 100);
         const promise = this.getCustomEmojiDocuments(ids).then((docs) => {
-          // * by id, as the other clients take them (tdesktop, tdlib, Android): the answer is not bound to the order
-          // * asked, and an id the server does not know may be left out of it - every id asked is answered, that one
-          // * with nothing, or it would be asked for again and again and its emoji wait for ever
-          const byId = new Map(docs.filter(Boolean).map((doc) => ['' + doc.id, doc]));
+          const byId = new Map<string, MyDocument>();
+          docs.forEach((doc) => {
+            if(doc) byId.set(String(doc.id), doc);
+          });
           ids.forEach((docId) => {
             const deferred = this.getCustomEmojiDocumentPromises.get(docId);
             this.getCustomEmojiDocumentPromises.delete(docId);
-            deferred.resolve(byId.get('' + docId));
+            deferred?.resolve(byId.get(String(docId)));
+          });
+        }, (error) => {
+          ids.forEach((docId) => {
+            const deferred = this.getCustomEmojiDocumentPromises.get(docId);
+            this.getCustomEmojiDocumentPromises.delete(docId);
+            deferred?.reject(error);
           });
         });
 
