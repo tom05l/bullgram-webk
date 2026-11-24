@@ -1,0 +1,42 @@
+name: Bullgram WebK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [bullgram]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install
+        run: npx -y pnpm@11.16.0 install --frozen-lockfile
+      - name: Build (tests, typecheck, bundle)
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
+        run: npx -y pnpm@11.16.0 run build
+      - name: Package
+        run: |
+          V=$(cat public/version | tr -d '\n' | tr ' ()' '-__')
+          tar -czf "bullgram-webk-${V}.tar.gz" -C dist .
+          ls -la *.tar.gz
+          echo "PKG=bullgram-webk-${V}.tar.gz" >> $GITHUB_ENV
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bullgram-webk
+          path: ${{ env.PKG }}
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "webk-${GITHUB_RUN_NUMBER}" "$PKG" --repo "$GITHUB_REPOSITORY" --prerelease \
+            --title "Bullgram WebK $(cat public/version) build ${GITHUB_RUN_NUMBER}" \
+            --notes "dist/ of the Bullgram WebK (tweb). Deploy with /opt/bullgram-webk/activate_release.py."
